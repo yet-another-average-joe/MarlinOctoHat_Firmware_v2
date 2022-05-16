@@ -39,7 +39,7 @@ enum modeEmu_t
 
 modeEmu_t  modeEmu;
 
-// raw data buffer ; set buffer size to larger :
+// raw data buffer ; set buffer size to largest :
 // ST7920_BUF_SIZE     : 1280 ; 1 page = half screen 
 // SSD1306_BUF_SIZE    : 1048 ; full screen
 
