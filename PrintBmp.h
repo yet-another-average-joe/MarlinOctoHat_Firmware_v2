@@ -1,20 +1,11 @@
 #pragma once
+/*
+ Name:       MarlinOctoHat_v2.h
+ Created:    2022/05/08
+ Author:     Y@@J
+ */
 
-
-//#ifdef __SERIAL_DEBUG
-
-// print formated hexadecimal to the terminal
-//#ifdef __PRINT_HEX
+// for debugging
 
 void printBmpHex();
-
-//#endif //__PRINT_HEX
-
-// print ASCII art to the terminal
-//#ifdef __PRINT_ASCII
-
 void printBmpAscii();
-
-//#endif // __PRINT_ASCII
-
-//#endif // __SERIAL_DEBUG

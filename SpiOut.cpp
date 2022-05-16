@@ -1,9 +1,12 @@
+/*
+ Name:       SpiOut.cpp
+ Created:    2022/05/08
+ Author:     Y@@J
+ */
+
 #include "SpiOut.h"
 
-
 #define DTR_PULSE_DURATION      1 // 1ms
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // receives the decoded bitmap
@@ -11,6 +14,8 @@
 // allways keeps the last captured screen until a new one arrives
 
 uint8_t bmpOut[BMP_OUT_SIZE] = {0}; // BMP_OUT_SIZE = 1024 bytes
+
+void setup_SPI_1_DMA();
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SPI_1 : MISO (Tx) only
@@ -31,7 +36,6 @@ void setup_SPI_1()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_1 DMA ; Tx (MISO) only
-// http://stm32duinoforum.com/forum/viewtopic_f_14_t_3527_start_10.html
 
 void setup_SPI_1_DMA()
 {

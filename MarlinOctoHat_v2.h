@@ -1,5 +1,9 @@
 #pragma once
-
+/*
+ Name:       MarlinOctoHat_v2.h
+ Created:    2022/05/08
+ Author:     Y@@J
+ */
 /*
     thread on stm32duino.com, and special thanks for the help about SPI DMA tranfers !:
     https://www.stm32duino.com/viewtopic.php?t=825
@@ -89,24 +93,23 @@
 #define PIN_DISPLAY_TYPE    PB1 // LOW : SSD1606, HIGH : ST7920
 #define PIN_NSS_2           PB12
 
-
 #define BMP_OUT_WIDTH   128    // pixels
 #define BMP_OUT_HEIGHT   64    // pixels
 
 #define BMP_LINE_BYTES (BMP_OUT_WIDTH / 8)                      // 1 bit/pixel : 1024 bytes
 #define BMP_OUT_SIZE   (BMP_OUT_WIDTH * BMP_OUT_HEIGHT / 8)     // 1 bit/pixel : 1024 bytes
 
-////PIN_SOFT_SHUTDOWN
-////PIN_HARD_SHUTDOWN
-////PIN_POWEROFF
-////PIN_RELAY_OFF
-////PIN_RELAY_ON
-////PIN_BTN_POWER
-//
+//PIN_SOFT_SHUTDOWN
+//PIN_HARD_SHUTDOWN
+//PIN_POWEROFF
+//PIN_RELAY_OFF
+//PIN_RELAY_ON
+//PIN_BTN_POWER
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SPI 2 : input
 
 #define SPI_2_RX_DMA_CH        DMA_CH4	// input
 void SPI_2_DMA_IRQ();
 extern SPIClass SPI_2;                      // declared in MarlinOctoHat.cpp
-extern uint8_t SPI_2_Rx_Buffer[];
+extern volatile uint8_t SPI_2_Rx_Buffer[];

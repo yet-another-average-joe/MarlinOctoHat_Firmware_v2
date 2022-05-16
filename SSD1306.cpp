@@ -1,4 +1,8 @@
-
+/*
+ Name:       SSD1306.cpp
+ Created:    2022/05/08
+ Author:     Y@@J
+ */
 
 #include "SSD1306.h"
 #include "SpiOut.h"
@@ -6,8 +10,18 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // OLED    data
 
+// data (SSD1306/SSD1309) : 1 frame = 8 pages, 1 page = 3 command bytes + 128 bytes, 1 page = 8 graphic lines
+#define SSD1306_PAGE_COUNT      8
+#define SSD1306_LINES_PER_PAGE  8
+#define SSD1306_CMD_SIZE        3
+#define SSD1306_PAGE_SIZE       128
+#define SSD1306_SPI_FRAME_SIZE  (SSD1306_CMD_SIZE + SSD1306_PAGE_SIZE)        // 1048 bytes
+
 // bmpOled with vertical 8bit monochrome macropixels...
 uint8_t bmpOled[SSD1306_PAGE_COUNT][SSD1306_PAGE_SIZE] = {0};
+
+void SSD1306_ISR_NSS_2();
+void SSD1306_setup_SPI_2_DMA();
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_2 ; slave ; Rx only ; input
@@ -19,6 +33,7 @@ void SSD1306_setup_SPI_2()
     SPI_2.beginTransactionSlave(spiSettings);
     spi_rx_reg(SPI_2.dev()); // Clear Rx register in case we already received SPI data
     SSD1306_setup_SPI_2_DMA();
+    
     attachInterrupt(digitalPinToInterrupt(PIN_NSS_2), SSD1306_ISR_NSS_2, RISING);   // RISING = end of page (1/8 screen)
 }
 
@@ -31,7 +46,7 @@ dma_tube_config SSD1306_SPI_2_DMA_RxTubeCfg =
     DMA_SIZE_8BITS,             // Source transfer size
     &SPI_2_Rx_Buffer,          // Destination of data
     DMA_SIZE_8BITS,             // Destination transfer size
-    1048,//SSD1306_SPI_FRAME_SIZE,     // Number of bytes to receive
+    SSD1306_SPI_FRAME_SIZE,     // Number of bytes to receive
                                 // Flags :
     DMA_CFG_DST_INC |           //    - auto increment destination address
     DMA_CFG_CIRC |              //    - circular buffer
@@ -81,7 +96,7 @@ void SSD1306_setup_SPI_2_DMA()
 
 void SSD1306_ISR_NSS_2()
 {
-	uint8_t* p = SPI_2_Rx_Buffer;
+	volatile uint8_t* p = SPI_2_Rx_Buffer;
 
 	// keep pages only : 0x10 0x00 0xBn (0 <= n < 8)
 	if ((*p++ != 0x10) || (*p++ != 0x00) || ((*p++ & 0xF0) != 0xB0) || ((*p & 0x0F) > 7)) // not a page or not in sync
@@ -101,7 +116,7 @@ bool SSD1306_stripCmdBytes()
 {
 	for (size_t iPage = 0; iPage < SSD1306_PAGE_COUNT; iPage++)
 	{
-		uint8_t* pRxBuf = (uint8_t*)SPI_2_Rx_Buffer + iPage * SSD1306_SPI_PAGE_SIZE;
+		uint8_t* pRxBuf = (uint8_t*)SPI_2_Rx_Buffer + iPage * SSD1306_SPI_FRAME_SIZE;
 		uint16_t cmd = *(uint16_t*)pRxBuf; // command bytes
 		uint8_t pageNum = *(uint8_t*)(pRxBuf + 2);
 

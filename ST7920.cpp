@@ -1,13 +1,15 @@
-
+/*
+ Name:       ST7920.cpp
+ Created:    2022/05/08
+ Author:     Y@@J
+ */
 
 #include "ST7920.h"
 #include "SpiOut.h"
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ST7920    SPI tranfers retro engineering (crappy datasheet !)
+// ST7920    SPI tranfers ; retro engineered (crappy datasheet !)
 // data as seen on the logic analyser
-
 /*
                 typical frame, made of 2 pages of 32 lines :
                 --------------------------------------------
@@ -98,6 +100,46 @@
 
                 NSS inactive LOW
 */
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// ST7920 SPI data description
+
+struct ST7920_lastLine_t // last line is one byte shorter than others
+{
+    // 7 bytes
+    uint8_t prefix0[2]; // = { 0x30, 0xE0 }
+    uint8_t prefix1[2]; // = { 0xNN, 0xMM } -> #line
+    uint8_t prefix2;    // = 0x80
+    uint8_t prefix3;    // page0 : 0x00, page1 : 0x80
+    uint8_t prefix4;    // = 0xFA
+
+    // 32 bytes
+    uint8_t payload[32];    // payload ("encoded")
+
+    // DOES NOT EXIST IN LAST LINE
+    //uint8_t postfix;
+};
+
+struct ST7920_line_t : ST7920_lastLine_t // line : one byte more than last line
+{
+    // 1 byte
+    uint8_t postfix;    // page0 last byte = 0x10, page1 last byte = 0x00 
+};
+
+struct ST7920_page_t // page ; a frame is made of two pages
+{
+    uint8_t             byte0;      // = 0xF8
+    ST7920_line_t       lines[31];
+    ST7920_lastLine_t   lastLine;
+};
+
+#define ST7920_LINE_SIZE        (sizeof(ST7920_line_t) / sizeof(uint8_t))              //   40 bytes
+#define ST7920_PAYLOAD_SIZE     (sizeof(ST7920_line_t::payload) / sizeof(uint8_t))     //   32 bytes
+#define ST7920_SPI_PAGE_SIZE    (sizeof(ST7920_page_t) / sizeof(uint8_t))              // 1280 bytes
+
+#define ST7920_BUF_SIZE ST7920_SPI_PAGE_SIZE
+
+void ST7920_ISR_NSS_2();
+void ST7920_setup_SPI_2_DMA();
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_2 ; slave ; input
@@ -105,11 +147,21 @@
 void ST7920_setup_SPI_2()
 {
     SPI_2.setModule(2); // STM32F103C8 : low density 1 or 2
-    SPISettings spiSettings(0, MSBFIRST, SPI_MODE0, DATA_SIZE_8BIT /* | SPI_SOFT_SS | SPI_SW_SLAVE*/);  // 0 Hz : set by master
+
+    // SPI_SW_SLAVE                 : works with NSS2 floating
+    // SPI_SOFT_SS                  : works if NSS2 to ground
+    // SPI_SW_SLAVE | SPI_SOFT_SS   : does NOT work
+
+    SPISettings spiSettings(0, MSBFIRST, SPI_MODE0,     DATA_SIZE_8BIT |
+                                                        SPI_SW_SLAVE |
+                                                        //SPI_SOFT_SS |
+                                                        0x00
+                                                        );  // 0 Hz : set by master
     SPI_2.beginTransactionSlave(spiSettings);
     spi_rx_reg(SPI_2.dev()); // Clear Rx register in case we already received SPI data
     ST7920_setup_SPI_2_DMA();
-    attachInterrupt(digitalPinToInterrupt(PIN_NSS_2), ST7920_ISR_NSS_2, RISING);   // FALLING = end of page (= 1/2 screen)
+    
+    attachInterrupt(digitalPinToInterrupt(PIN_NSS_2), ST7920_ISR_NSS_2, FALLING);   // FALLING = end of page (= 1/2 screen)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,6 +217,16 @@ void ST7920_setup_SPI_2_DMA()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// helper function : resets SPI
+
+void ST7920_resetSpi()
+{
+    dma_disable(DMA1, SPI_2_RX_DMA_CH);
+    dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &ST7920_SPI_2_DMA_RxTubeCfg);
+    dma_enable(DMA1, SPI_2_RX_DMA_CH);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // helper function : returns the page # for the current data in SPI_2_Rx_Buffer
 // error : returns -1 
 
@@ -174,12 +236,11 @@ static inline int32_t ST7920_getNumPage()
     static const uint8_t hash0 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x00 ^ 0xFA; // = 0xD2
     static const uint8_t hash1 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x80 ^ 0xFA; // = 0x52
 
+    uint8_t* p = (uint8_t*)SPI_2_Rx_Buffer;
+    size_t i = 7;
     uint8_t hash = 0;
 
-    uint8_t* p = (uint8_t*)SPI_2_Rx_Buffer;
-
-    for (size_t i = 0; i < 8; i++)
-        hash ^= p[i];
+    do { hash ^= *p++; } while (i--);
 
     switch (hash)
     {
@@ -196,17 +257,14 @@ static inline int32_t ST7920_getNumPage()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ISR : NSS_2
-// FALLING  (= end of page = 1/2 screen) : if not a payload frame, reset SPI + DMA
+// FALLING  (= end of page = 1/2 screen) : if not a payload frame or synch error : reset SPI + DMA
+// so far, the only way to make this crap work was to reset the hardware !
 
 void ST7920_ISR_NSS_2()
 {
-    // keep valid pages only : reset
+    // UGGLIEST way to resynch EVER !
     if (ST7920_getNumPage() < 0)
-    {
-        dma_disable(DMA1, SPI_2_RX_DMA_CH);
-        dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &ST7920_SPI_2_DMA_RxTubeCfg);
-        dma_enable(DMA1, SPI_2_RX_DMA_CH);
-    }
+        nvic_sys_reset();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
