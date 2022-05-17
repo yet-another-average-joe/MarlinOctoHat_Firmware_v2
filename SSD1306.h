@@ -14,5 +14,6 @@
 #include "MarlinOctoHat_v2.h"
 
 void SSD1306_setup_SPI_2();
-bool SSD1306_dataToBmpOut();
+bool SSD1306_readyToSend();
+
 

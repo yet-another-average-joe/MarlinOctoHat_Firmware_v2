@@ -140,6 +140,8 @@ struct ST7920_page_t // page ; a frame is made of two pages
 
 void ST7920_ISR_NSS_2();
 void ST7920_setup_SPI_2_DMA();
+void ST7920_SPI_2_DMA_IRQ();
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_2 ; slave ; input
@@ -211,7 +213,7 @@ void ST7920_setup_SPI_2_DMA()
     }
 
     spi_rx_reg(SPI_2.dev()); // Clear RX register in case we already received SPI data
-    dma_attach_interrupt(DMA1, SPI_2_RX_DMA_CH, SPI_2_DMA_IRQ); // Attach interrupt to catch end of DMA transfer
+    dma_attach_interrupt(DMA1, SPI_2_RX_DMA_CH, ST7920_SPI_2_DMA_IRQ); // Attach interrupt to catch end of DMA transfer
     dma_enable(DMA1, SPI_2_RX_DMA_CH); // Rx : Enable DMA configurations
     spi_rx_dma_enable(SPI_2.dev()); // SPI DMA requests for Rx 
 }
@@ -302,4 +304,56 @@ int32_t ST7920_dataToBmpOut()
     }
 
     return numPage;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// function : SPI_2 Rx IRQ ; input
+
+//#define __SERIAL_DEBUG
+//#undef __SERIAL_DEBUG
+
+void ST7920_SPI_2_DMA_IRQ()
+{
+    dma_irq_cause cause = dma_get_irq_cause(DMA1, SPI_2_RX_DMA_CH);
+
+#ifdef __SERIAL_DEBUG
+    switch (cause)
+    {
+    case DMA_TRANSFER_COMPLETE:            // Transfer is complete
+        SPI_2_DMA_transfer_complete = true;
+        SPI_2_DMA_error = false;
+        Serial.println("DMA_2 : DMA_TRANSFER_COMPLETE");
+        break;
+    case DMA_TRANSFER_ERROR:            // Error occurred during transfer
+        Serial.println("DMA_2 : DMA_TRANSFER_ERROR");
+        SPI_2_DMA_error = true;
+        break;
+    case DMA_TRANSFER_DME_ERROR:        // Direct mode error occurred during transfer
+        Serial.println("DMA_2 : DMA_TRANSFER_DME_ERROR");
+        SPI_2_DMA_error = true;
+        break;
+    case DMA_TRANSFER_FIFO_ERROR:        // FIFO error occurred during transfer
+        Serial.println("DMA_2 : DMA_TRANSFER_FIFO_ERROR");
+        SPI_2_DMA_error = true;
+        break;
+    case DMA_TRANSFER_HALF_COMPLETE:    // Transfer is half complete
+        Serial.println("DMA_2 : DMA_TRANSFER_HALF_COMPLETE");
+        SPI_2_DMA_error = true;
+        break;
+    default:
+        Serial.println("DMA_2 : UNKNOWN ERROR");
+        SPI_2_DMA_error = true;
+        break;
+    }
+#else
+    if (cause == DMA_TRANSFER_COMPLETE)
+    {
+        SPI_2_DMA_transfer_complete = true;
+        SPI_2_DMA_error = false;
+    }
+    else
+        SPI_2_DMA_error = true;
+#endif // __SERIAL_DEBUG
+
+    dma_clear_isr_bits(DMA1, SPI_2_RX_DMA_CH);
 }

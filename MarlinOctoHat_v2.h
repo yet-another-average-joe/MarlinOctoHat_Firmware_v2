@@ -110,6 +110,9 @@
 // SPI 2 : input
 
 #define SPI_2_RX_DMA_CH        DMA_CH4	// input
-void SPI_2_DMA_IRQ();
 extern SPIClass SPI_2;                      // declared in MarlinOctoHat.cpp
+
 extern volatile uint8_t SPI_2_Rx_Buffer[];
+
+extern volatile bool SPI_2_DMA_transfer_complete;
+extern volatile bool SPI_2_DMA_error;

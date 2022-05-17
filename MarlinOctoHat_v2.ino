@@ -4,7 +4,7 @@
  Author:     Y@@J
  */
 
-//#define __SERIAL_DEBUG
+#define __SERIAL_DEBUG
 //#define __PRINT_HEX   // prints bitmaps to Serial as ASCII Hex array 32x32
 //#define __PRINT_ASCII // prints bitmaps to Serial as ASCII Art
 
@@ -26,7 +26,7 @@
 // SPI 2
 
 SPIClass    SPI_2(2);   // SPI in
-void SPI_2_DMA_IRQ();
+//void SPI_2_DMA_IRQ();
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // mode : SSD1306 or ST7920
@@ -116,15 +116,8 @@ void loop()
     {
         if (modeEmu == SSD1306)
         {
-            if (SSD1306_dataToBmpOut())
-            {
+            if (SSD1306_readyToSend())
                 pulseDTR();
-                debugPrint();
-            }
-#ifdef __SERIAL_DEBUG
-            else
-                Serial.println("loop() : SSD1306_dataToBmpOut() returned false"); // should never happen !
-#endif // __SERIAL_DEBUG
         }
         else if (modeEmu == ST7920)
         {
@@ -153,8 +146,8 @@ void loop()
 // function : SPI_2 Rx IRQ ; input
 
 //#define __SERIAL_DEBUG
-#undef __SERIAL_DEBUG
-
+//#undef __SERIAL_DEBUG
+/*
 void SPI_2_DMA_IRQ()
 {
     dma_irq_cause cause = dma_get_irq_cause(DMA1, SPI_2_RX_DMA_CH);
@@ -200,7 +193,7 @@ void SPI_2_DMA_IRQ()
 
     dma_clear_isr_bits(DMA1, SPI_2_RX_DMA_CH);
 }
-
+*/
 // END
 
 
