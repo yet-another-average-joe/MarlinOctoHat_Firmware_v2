@@ -15,13 +15,16 @@
 #define SSD1306_LINES_PER_PAGE  8
 #define SSD1306_CMD_SIZE        3
 #define SSD1306_PAGE_SIZE       128
-#define SSD1306_SPI_FRAME_SIZE  (SSD1306_CMD_SIZE + SSD1306_PAGE_SIZE)        // 1048 bytes
+#define SSD1306_SUB_FRAME_SIZE  (SSD1306_CMD_SIZE + SSD1306_PAGE_SIZE)        // 131 bytes
+#define SSD1306_FRAME_SIZE      (SSD1306_SUB_FRAME_SIZE * SSD1306_PAGE_COUNT)
 
 // bmpOled with vertical 8bit monochrome macropixels...
 uint8_t bmpOled[SSD1306_PAGE_COUNT][SSD1306_PAGE_SIZE] = {0};
 
 void SSD1306_ISR_NSS_2();
 void SSD1306_setup_SPI_2_DMA();
+void SSD1306_resetSpi();
+bool SSD1306_stripCmdBytes();
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_2 ; slave ; Rx only ; input
@@ -44,9 +47,9 @@ dma_tube_config SSD1306_SPI_2_DMA_RxTubeCfg =
 {
     &SPI2->regs->DR,            // Source of data
     DMA_SIZE_8BITS,             // Source transfer size
-    &SPI_2_Rx_Buffer,          // Destination of data
+    &SPI_2_Rx_Buffer,           // Destination of data
     DMA_SIZE_8BITS,             // Destination transfer size
-    SSD1306_SPI_FRAME_SIZE,     // Number of bytes to receive
+    SSD1306_FRAME_SIZE,         // Number of bytes to receive
                                 // Flags :
     DMA_CFG_DST_INC |           //    - auto increment destination address
     DMA_CFG_CIRC |              //    - circular buffer
@@ -99,13 +102,18 @@ void SSD1306_ISR_NSS_2()
 	volatile uint8_t* p = SPI_2_Rx_Buffer;
 
 	// keep pages only : 0x10 0x00 0xBn (0 <= n < 8)
-	if ((*p++ != 0x10) || (*p++ != 0x00) || ((*p++ & 0xF0) != 0xB0) || ((*p & 0x0F) > 7)) // not a page or not in sync
-	{
-		// reset
-		dma_disable(DMA1, SPI_2_RX_DMA_CH);
-		dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &SSD1306_SPI_2_DMA_RxTubeCfg);
-		dma_enable(DMA1, SPI_2_RX_DMA_CH);
-	}
+    if ((*p++ != 0x10) || (*p++ != 0x00) || ((*p++ & 0xF0) != 0xB0) || ((*p & 0x0F) > 7)) // not a page or not in sync
+        SSD1306_resetSpi();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// helper function : resets SPI
+
+void SSD1306_resetSpi()
+{
+    dma_disable(DMA1, SPI_2_RX_DMA_CH);
+    dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &SSD1306_SPI_2_DMA_RxTubeCfg);
+    dma_enable(DMA1, SPI_2_RX_DMA_CH);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +124,7 @@ bool SSD1306_stripCmdBytes()
 {
 	for (size_t iPage = 0; iPage < SSD1306_PAGE_COUNT; iPage++)
 	{
-		uint8_t* pRxBuf = (uint8_t*)SPI_2_Rx_Buffer + iPage * SSD1306_SPI_FRAME_SIZE;
+		uint8_t* pRxBuf = (uint8_t*)SPI_2_Rx_Buffer + iPage * SSD1306_SUB_FRAME_SIZE;
 		uint16_t cmd = *(uint16_t*)pRxBuf; // command bytes
 		uint8_t pageNum = *(uint8_t*)(pRxBuf + 2);
 
@@ -143,13 +151,25 @@ bool SSD1306_stripCmdBytes()
 //    SSD1306/SSD1309/SSH1106 : 8 pages with 128 8bit vertical macropixels
 //    bmpOut : 1024 byes, 1bit linear bitmap (128 lines 64 columns)
 //    Similar to a matrix transposition, each elementaty matrix being 8x8
-//    duration : 2.80ms
+//    duration : 2.90ms
 
-void SSD1306_dataToBmpOut()
+bool SSD1306_dataToBmpOut()
 {
 #ifdef __SERIAL_DEBUG
     uint32 t0 = micros();
 #endif // __SERIAL_DEBUG
+
+    if (!SSD1306_stripCmdBytes())
+    {
+        // attempt to resynch
+        SSD1306_resetSpi();
+
+#ifdef __SERIAL_DEBUG
+        Serial.println("SSD1306_stripCmdBytes() error");
+#endif // __SERIAL_DEBUG
+
+        return false;
+    }
 
     uint16_t iByte = 0; // bytes counter for output bitmap
     uint16_t jBit = 0; // bits counter for the current byte
@@ -173,4 +193,6 @@ void SSD1306_dataToBmpOut()
 #ifdef __SERIAL_DEBUG
     Serial.println(micros() - t0);
 #endif // __SERIAL_DEBUG
+
+    return true;
 }

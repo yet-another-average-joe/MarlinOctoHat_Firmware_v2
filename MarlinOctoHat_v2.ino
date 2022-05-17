@@ -39,7 +39,7 @@ enum modeEmu_t
 
 modeEmu_t  modeEmu;
 
-// raw data buffer ; set buffer size to larger :
+// raw data buffer ; set buffer size to largest :
 // ST7920_BUF_SIZE     : 1280 ; 1 page = half screen 
 // SSD1306_BUF_SIZE    : 1048 ; full screen
 
@@ -48,6 +48,22 @@ volatile uint8_t SPI_2_Rx_Buffer[1280];
 // flags
 volatile bool SPI_2_DMA_transfer_complete = false;
 volatile bool SPI_2_DMA_error = false;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// function : debugPrint() : displays ASCII art or HEX dump
+
+inline void debugPrint()
+{
+#ifdef __SERIAL_DEBUG
+#ifdef __PRINT_HEX
+    printBmpHex();
+#endif//  __PRINT_HEX
+
+#ifdef __PRINT_ASCII
+    printBmpAscii();
+#endif // __PRINT_ASCII
+#endif // __SERIAL_DEBUG
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : "Arduino" setup()
@@ -100,15 +116,15 @@ void loop()
     {
         if (modeEmu == SSD1306)
         {
-            if (SSD1306_stripCmdBytes())
+            if (SSD1306_dataToBmpOut())
             {
-                SSD1306_dataToBmpOut();
                 pulseDTR();
-
-#ifdef __SERIAL_DEBUG
-                gotIt = true;
-#endif // __SERIAL_DEBUG
+                debugPrint();
             }
+#ifdef __SERIAL_DEBUG
+            else
+                Serial.println("loop() : SSD1306_dataToBmpOut() returned false"); // should never happen !
+#endif // __SERIAL_DEBUG
         }
         else if (modeEmu == ST7920)
         {
@@ -116,51 +132,28 @@ void loop()
 
             if (numPage == 1) // wait for the two pages
             {
-                ST7920_dataToBmpOut();
                 pulseDTR();
-#ifdef __SERIAL_DEBUG
-                gotIt = true;
-#endif // __SERIAL_DEBUG
+                debugPrint();
             }
-
 #ifdef __SERIAL_DEBUG
             else if (numPage == -1) // wait for the two pages
-                Serial.println("BOOM !"); // should never happen !
+                Serial.println("loop() : ST7920_dataToBmpOut() returned numPage = -1"); // should never happen !
 #endif // __SERIAL_DEBUG
         }
-
-#ifdef __SERIAL_DEBUG
-        else
-            Serial.println("BOOM !"); // should never happen !
-#endif // __SERIAL_DEBUG
 
         SPI_2_DMA_transfer_complete = false; // reset flag
     }
 
-#if defined(__PRINT_ASCII) || defined(__PRINT_HEX)
-    if (gotIt)
-    {
-#ifdef __PRINT_HEX
-        printBmpHex();
-#endif//  __PRINT_HEX
-
-#ifdef __PRINT_ASCII
-        printBmpAscii();
-#endif // __PRINT_ASCII
-    }
-#endif
-
 #ifdef __POWER
 	loopPower();
 #endif // __POWER
-
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : SPI_2 Rx IRQ ; input
 
 //#define __SERIAL_DEBUG
-//#undef __SERIAL_DEBUG
+#undef __SERIAL_DEBUG
 
 void SPI_2_DMA_IRQ()
 {
