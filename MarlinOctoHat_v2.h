@@ -112,7 +112,9 @@
 #define SPI_2_RX_DMA_CH        DMA_CH4	// input
 extern SPIClass SPI_2;                      // declared in MarlinOctoHat.cpp
 
-extern volatile uint8_t SPI_2_Rx_Buffer[];
+extern volatile uint8_t SPI_2_Rx_Buffer[]; // shared by all emulators
 
 extern volatile bool SPI_2_DMA_transfer_complete;
 extern volatile bool SPI_2_DMA_error;
+
+extern volatile bool dataReady;

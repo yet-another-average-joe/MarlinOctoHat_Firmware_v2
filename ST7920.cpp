@@ -2,6 +2,10 @@
  Name:       ST7920.cpp
  Created:    2022/05/08
  Author:     Y@@J
+
+    takes full advantage of DMA : Tx buffer (bmpOut) is filled while receeiving
+    last bit -> DTR pulse = 95 microseconds, no room for further optimisation
+    total propagation time : 42 milliseconds (1st bit received -> DTR pulse)
  */
 
 #include "ST7920.h"
@@ -138,9 +142,9 @@ struct ST7920_page_t // page ; a frame is made of two pages
 
 #define ST7920_BUF_SIZE ST7920_SPI_PAGE_SIZE
 
-void ST7920_ISR_NSS_2();
-void ST7920_setup_SPI_2_DMA();
-void ST7920_SPI_2_DMA_IRQ();
+static void ST7920_ISR_NSS_2();
+static void ST7920_setup_SPI_2_DMA();
+static void ST7920_SPI_2_DMA_IRQ();
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,19 +154,11 @@ void ST7920_setup_SPI_2()
 {
     SPI_2.setModule(2); // STM32F103C8 : low density 1 or 2
 
-    // SPI_SW_SLAVE                 : works with NSS2 floating
-    // SPI_SOFT_SS                  : works if NSS2 to ground
-    // SPI_SW_SLAVE | SPI_SOFT_SS   : does NOT work
+    SPISettings spiSettings(0, MSBFIRST, SPI_MODE0, DATA_SIZE_8BIT | SPI_SW_SLAVE); // 0 Hz : set by master
 
-    SPISettings spiSettings(0, MSBFIRST, SPI_MODE0,     DATA_SIZE_8BIT |
-                                                        SPI_SW_SLAVE |
-                                                        //SPI_SOFT_SS |
-                                                        0x00
-                                                        );  // 0 Hz : set by master
     SPI_2.beginTransactionSlave(spiSettings);
     spi_rx_reg(SPI_2.dev()); // Clear Rx register in case we already received SPI data
     ST7920_setup_SPI_2_DMA();
-    
     attachInterrupt(digitalPinToInterrupt(PIN_NSS_2), ST7920_ISR_NSS_2, FALLING);   // FALLING = end of page (= 1/2 screen)
 }
 
@@ -187,8 +183,6 @@ dma_tube_config ST7920_SPI_2_DMA_RxTubeCfg =
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_2 DMA
-
-//#define __SERIAL_DEBUG
 
 void ST7920_setup_SPI_2_DMA()
 {
@@ -219,16 +213,6 @@ void ST7920_setup_SPI_2_DMA()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// helper function : resets SPI
-
-void ST7920_resetSpi()
-{
-    dma_disable(DMA1, SPI_2_RX_DMA_CH);
-    dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &ST7920_SPI_2_DMA_RxTubeCfg);
-    dma_enable(DMA1, SPI_2_RX_DMA_CH);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // helper function : returns the page # for the current data in SPI_2_Rx_Buffer
 // error : returns -1 
 
@@ -255,6 +239,57 @@ static inline int32_t ST7920_getNumPage()
     default:
         return -1;
     };
+
+
+
+    //// page 0 / page 1 hashcodes : faster
+    //static const uint8_t hash0 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x00 ^ 0xFA; // = 0xD2 = 210
+    //static const uint8_t hash1 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x80 ^ 0xFA; // = 0x52 = 82
+    //// workaround : pattern = data shifted left 1 byte : very first page
+    //static const uint8_t hashW0 = 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x00 ^ 0xFA; // = 0x42
+    //static const uint8_t hashW1 = 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x80 ^ 0xFA; // = 0x42
+    ////static const uint8_t hashW2 = 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x80 ^ 0xFA; // = 0x42
+
+    //uint8_t* p = (uint8_t*)SPI_2_Rx_Buffer;
+    //uint8_t* q = (uint8_t*)SPI_2_Rx_Buffer;
+
+    //size_t i = 7;
+    //uint8_t hash = 0;
+
+    //do { hash ^= *p++; } while (i--);
+    ////Serial.println(hash);
+
+    //switch (hash)
+    //{
+    //case hash0:
+    //    return 0;
+
+    //case hash1:
+    //    return 1;
+
+    //case hashW0: // workaround
+    //    return 2;
+
+    //case hashW1: // workaround
+    //    return 3;
+
+    //default:
+    //    {
+    //        //for (int i = 0; i < 8; i++)
+    //        //{
+    //        //    uint8_t b = *q++;
+    //        //    if (b < 0x10)
+    //        //        Serial.print("0x0");
+    //        //    else
+    //        //        Serial.print("0x");
+    //        //    Serial.print(b, HEX);
+    //        //    Serial.print(", ");
+    //        //}
+    //        //Serial.println();
+    //        //nvic_sys_reset(); // uggly !
+    //        return -1;
+    //    }
+    //};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,9 +299,8 @@ static inline int32_t ST7920_getNumPage()
 
 void ST7920_ISR_NSS_2()
 {
-    // UGGLIEST way to resynch EVER !
     if (ST7920_getNumPage() < 0)
-        nvic_sys_reset();
+        ST7920_setup_SPI_2(); // reset SPI
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,56 +338,94 @@ int32_t ST7920_dataToBmpOut()
     }
 
     return numPage;
+
+
+
+    //uint8_t* bmpPtr = bmpOut;
+    //int32_t numPage = ST7920_getNumPage();
+    ////uint8_t* p = (uint8_t*)SPI_2_Rx_Buffer;
+    ////uint8_t* q = (uint8_t*)SPI_2_Rx_Buffer;
+    ////uint8_t* r = (uint8_t*)SPI_2_Rx_Buffer;
+
+    //switch (numPage)
+    //{
+    //case 1:
+    ////case 3:
+    //    bmpPtr += BMP_OUT_SIZE / 2; // fill 2nd half of the bitmap
+    //    break;
+    //case 0:
+    ////case 2:
+    //    break;
+    ////case 3:
+    ////{
+    ////    uint8_t* r = (uint8_t*)SPI_2_Rx_Buffer;
+    ////    r++;
+    ////    memmove((void*)r, (void*)SPI_2_Rx_Buffer, ST7920_SPI_PAGE_SIZE - 1);
+    ////    SPI_2_Rx_Buffer[0] = 0xF8;
+    ////    Serial.println("-----------------------------");
+    ////    for (int i = 0; i < 8; i++)
+    ////    {
+    ////        uint8_t b = *q++;
+    ////        if (b < 0x10)
+    ////            Serial.print("0x0");
+    ////        else
+    ////            Serial.print("0x");
+    ////        Serial.print(b, HEX);
+    ////        Serial.print(", ");
+    ////    }
+    ////    Serial.println("-----------------------------");
+    ////}
+    ////break;
+    ////case 2:
+    ////{
+    ////    uint8_t* r = (uint8_t*)SPI_2_Rx_Buffer;
+    ////    r++;
+    ////    memmove((void*)r, (void*)SPI_2_Rx_Buffer, ST7920_SPI_PAGE_SIZE - 1);
+    ////    SPI_2_Rx_Buffer[0] = 0xF8;
+    ////    Serial.println("-----------------------------");
+    ////    for (int i = 0; i < 8; i++)
+    ////    {
+    ////        uint8_t b = *q++;
+    ////        if (b < 0x10)
+    ////            Serial.print("0x0");
+    ////        else
+    ////            Serial.print("0x");
+    ////        Serial.print(b, HEX);
+    ////        Serial.print(", ");
+    ////    }
+    ////    Serial.println("-----------------------------");
+    ////}
+    ////break;
+    //default:
+    //case -1:
+    //    return -1; // ERROR
+    //}
+    ////if (numPage == 1)
+    ////else if (numPage == -1)
+    ////    return -1; // ERROR
+
+    //for (size_t i = 0; i < 32; i++)
+    //{
+    //    ST7920_page_t* pPage = (ST7920_page_t*)SPI_2_Rx_Buffer;
+    //    ST7920_line_t* pLine = &pPage->lines[i];
+    //    decodePayload((uint8_t*)bmpPtr, pLine->payload);
+    //    bmpPtr += BMP_LINE_BYTES * sizeof(uint8_t);
+    //}
+
+    //return numPage;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : SPI_2 Rx IRQ ; input
 
-//#define __SERIAL_DEBUG
-//#undef __SERIAL_DEBUG
-
 void ST7920_SPI_2_DMA_IRQ()
 {
-    dma_irq_cause cause = dma_get_irq_cause(DMA1, SPI_2_RX_DMA_CH);
-
-#ifdef __SERIAL_DEBUG
-    switch (cause)
+    if (dma_get_irq_cause(DMA1, SPI_2_RX_DMA_CH) == DMA_TRANSFER_COMPLETE)
     {
-    case DMA_TRANSFER_COMPLETE:            // Transfer is complete
-        SPI_2_DMA_transfer_complete = true;
-        SPI_2_DMA_error = false;
-        Serial.println("DMA_2 : DMA_TRANSFER_COMPLETE");
-        break;
-    case DMA_TRANSFER_ERROR:            // Error occurred during transfer
-        Serial.println("DMA_2 : DMA_TRANSFER_ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    case DMA_TRANSFER_DME_ERROR:        // Direct mode error occurred during transfer
-        Serial.println("DMA_2 : DMA_TRANSFER_DME_ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    case DMA_TRANSFER_FIFO_ERROR:        // FIFO error occurred during transfer
-        Serial.println("DMA_2 : DMA_TRANSFER_FIFO_ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    case DMA_TRANSFER_HALF_COMPLETE:    // Transfer is half complete
-        Serial.println("DMA_2 : DMA_TRANSFER_HALF_COMPLETE");
-        SPI_2_DMA_error = true;
-        break;
-    default:
-        Serial.println("DMA_2 : UNKNOWN ERROR");
-        SPI_2_DMA_error = true;
-        break;
+        uint32_t numPage = ST7920_dataToBmpOut();
+        dataReady = numPage == 1; // wait for 2nd page
     }
-#else
-    if (cause == DMA_TRANSFER_COMPLETE)
-    {
-        SPI_2_DMA_transfer_complete = true;
-        SPI_2_DMA_error = false;
-    }
-    else
-        SPI_2_DMA_error = true;
-#endif // __SERIAL_DEBUG
 
     dma_clear_isr_bits(DMA1, SPI_2_RX_DMA_CH);
 }
+

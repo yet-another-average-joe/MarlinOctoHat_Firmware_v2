@@ -41,13 +41,27 @@ modeEmu_t  modeEmu;
 
 // raw data buffer ; set buffer size to largest :
 // ST7920_BUF_SIZE     : 1280 ; 1 page = half screen 
-// SSD1306_BUF_SIZE    : 1048 ; full screen
+// SSD1306_BUF_SIZE    : 131 : 3 control bytes + page
 
-volatile uint8_t SPI_2_Rx_Buffer[1280];
+volatile uint8_t SPI_2_Rx_Buffer[3000];// 1280];
 
 // flags
 volatile bool SPI_2_DMA_transfer_complete = false;
 volatile bool SPI_2_DMA_error = false;
+volatile bool dataReady = false;
+
+// helper : returns dataReady (set by SPI2 DMA IRQ) and resets the flag
+
+bool getDataReady()
+{
+    if (dataReady)
+    {
+        dataReady = false;
+        return true;
+    }
+
+    return false;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : debugPrint() : displays ASCII art or HEX dump
@@ -108,92 +122,10 @@ void setup()
 
 void loop()
 {
-#ifdef __SERIAL_DEBUG
-    bool gotIt = false;
-#endif // __SERIAL_DEBUG
-
-    if (SPI_2_DMA_transfer_complete)
-    {
-        if (modeEmu == SSD1306)
-        {
-            if (SSD1306_readyToSend())
-                pulseDTR();
-        }
-        else if (modeEmu == ST7920)
-        {
-            int numPage = ST7920_dataToBmpOut();
-
-            if (numPage == 1) // wait for the two pages
-            {
-                pulseDTR();
-                debugPrint();
-            }
-#ifdef __SERIAL_DEBUG
-            else if (numPage == -1) // wait for the two pages
-                Serial.println("loop() : ST7920_dataToBmpOut() returned numPage = -1"); // should never happen !
-#endif // __SERIAL_DEBUG
-        }
-
-        SPI_2_DMA_transfer_complete = false; // reset flag
-    }
-
-#ifdef __POWER
-	loopPower();
-#endif // __POWER
+    if (getDataReady())
+        pulseDTR();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// function : SPI_2 Rx IRQ ; input
-
-//#define __SERIAL_DEBUG
-//#undef __SERIAL_DEBUG
-/*
-void SPI_2_DMA_IRQ()
-{
-    dma_irq_cause cause = dma_get_irq_cause(DMA1, SPI_2_RX_DMA_CH);
-
-#ifdef __SERIAL_DEBUG
-    switch (cause)
-    {
-    case DMA_TRANSFER_COMPLETE:            // Transfer is complete
-        SPI_2_DMA_transfer_complete = true;
-        SPI_2_DMA_error = false;
-        Serial.println("DMA_2 : DMA_TRANSFER_COMPLETE");
-        break;
-    case DMA_TRANSFER_ERROR:            // Error occurred during transfer
-        Serial.println("DMA_2 : DMA_TRANSFER_ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    case DMA_TRANSFER_DME_ERROR:        // Direct mode error occurred during transfer
-        Serial.println("DMA_2 : DMA_TRANSFER_DME_ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    case DMA_TRANSFER_FIFO_ERROR:        // FIFO error occurred during transfer
-        Serial.println("DMA_2 : DMA_TRANSFER_FIFO_ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    case DMA_TRANSFER_HALF_COMPLETE:    // Transfer is half complete
-        Serial.println("DMA_2 : DMA_TRANSFER_HALF_COMPLETE");
-        SPI_2_DMA_error = true;
-        break;
-    default:
-        Serial.println("DMA_2 : UNKNOWN ERROR");
-        SPI_2_DMA_error = true;
-        break;
-    }
-#else
-    if (cause == DMA_TRANSFER_COMPLETE)
-    {
-        SPI_2_DMA_transfer_complete = true;
-        SPI_2_DMA_error = false;
-    }
-    else
-        SPI_2_DMA_error = true;
-#endif // __SERIAL_DEBUG
-
-    dma_clear_isr_bits(DMA1, SPI_2_RX_DMA_CH);
-}
-*/
 // END
 
 
