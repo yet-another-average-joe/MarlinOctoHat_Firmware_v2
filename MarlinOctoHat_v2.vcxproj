@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C5F80730-F44F-4478-BDAE-6634EFC2CA88}</ProjectGuid>
+    <RootNamespace>MarlinOctoHat_v2</RootNamespace>
+    <ProjectName>MarlinOctoHat_v2</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>
+    </PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>
+    </PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>
+    </PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>
+    </PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\MarlinOctoHat_v2;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\libraries\SPI\src;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple\avr;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple\libmaple;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple\stm32f1;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\variants\generic_stm32f103c;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\include;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\stm32f1\include;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\usb\stm32f1;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\usb\usb_lib;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1\arm-none-eabi;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1\tr1;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\sys;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1\arm-none-eabi\bits;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\lib\gcc\arm-none-eabi\9.2.1\include;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\arm-none-eabi;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\tr1;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\arm-none-eabi\bits;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\lib\gcc\arm-none-eabi\4.8.3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>$(ProjectDir)__vm\.MarlinOctoHat_v2.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
+      <PreprocessorDefinitions>DEBUG_LEVEL=DEBUG_NONE;BOARD_generic_stm32f103c;VECT_TAB_ADDR=0x8002000;ERROR_LED_PORT=GPIOC;ERROR_LED_PIN=13;F_CPU=72000000L;ARDUINO=108015;ARDUINO_GENERIC_STM32F103C;ARDUINO_ARCH_STM32F1;SERIAL_USB;GENERIC_BOOTLOADER;MCU_STM32F103C6;__STM32F1__;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\MarlinOctoHat_v2;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\libraries\SPI\src;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple\avr;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple\libmaple;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\cores\maple\stm32f1;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\variants\generic_stm32f103c;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\include;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\stm32f1\include;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\usb\stm32f1;$(ProjectDir)..\..\..\Arduino\hardware\Arduino_STM32\STM32F1\system\libmaple\usb\usb_lib;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1\arm-none-eabi;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1\tr1;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\sys;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\9.2.1\arm-none-eabi\bits;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\lib\gcc\arm-none-eabi\9.2.1\include;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\arm-none-eabi;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\tr1;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\arm-none-eabi\bits;C:\Users\admin\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\lib\gcc\arm-none-eabi\4.8.3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>$(ProjectDir)__vm\.MarlinOctoHat_v2.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PreprocessorDefinitions>DEBUG_LEVEL=DEBUG_FAULT;BOARD_generic_stm32f103c;VECT_TAB_ADDR=0x8002000;ERROR_LED_PORT=GPIOC;ERROR_LED_PIN=13;F_CPU=72000000L;ARDUINO=108015;ARDUINO_GENERIC_STM32F103C;ARDUINO_ARCH_STM32F1;SERIAL_USB;GENERIC_BOOTLOADER;MCU_STM32F103C6;__STM32F1__;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="VisualMicro" />
+  </ItemGroup>
+  <PropertyGroup>
+    <DebuggerFlavor>VisualMicroDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="MarlinOctoHat_v2.ino">
+      <FileType>CppCode</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MarlinOctoHat_v2.h" />
+    <ClInclude Include="__vm\.MarlinOctoHat_v2.vsarduino.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="SerialPrintBmp.cpp" />
+    <ClCompile Include="SpiOut.cpp" />
+    <ClCompile Include="SSD1306.cpp" />
+    <ClCompile Include="ST7920.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties config.Debug.custom_Arduino_STM32_genericSTM32F103C6_opt="o3std" config.Release.arduino.upload.port="COM24" config.Release.custom_Arduino_STM32_genericSTM32F103C6_opt="o3std" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>
