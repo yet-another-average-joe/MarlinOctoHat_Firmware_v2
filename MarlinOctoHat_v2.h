@@ -41,7 +41,7 @@
                                           * : 5V tolerant pins 
     
     
-    LCD_E, LCD_4, LCD_7 : variant with ST7920 emulator(not implemented)
+    LCD_E, LCD_4, LCD_7 : variant with ST7920 emulator
     SPI2 : SPI "input" (MOSI), from printer motherboard
     -------------------------------------------------- -
 
