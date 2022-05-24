@@ -7,7 +7,9 @@
 #include "MarlinOctoHat_v2.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// print ASCII art to the terminal
+// prints screen capture as ASCII art to Serial
+
+#ifdef __PRINT_ASCII
 
 void printBmpAscii()
 {
@@ -39,8 +41,12 @@ void printBmpAscii()
         Serial.print('-');
 }
 
+#endif //  __PRINT_ASCII
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// print formated hexadecimal to the terminal
+// prints screen capture as hex dump to Serial
+
+#ifdef __PRINT_HEX
 
 void printBmpHex()
 {
@@ -66,5 +72,7 @@ void printBmpHex()
     for (int x = 0; x < BMP_OUT_WIDTH; x++)
         Serial.print('-');
 }
+
+#endif // __PRINT_HEX
 
 // END

@@ -3,25 +3,29 @@
  Created:    2022/05/08
  Author:     Y@@J
 
-    takes full advantage of DMA : Tx buffer (bmpOut) is filled while receeiving
+    takes full advantage of DMA : Tx buffer (bmpOut) is filled while receiving
+
     last bit -> DTR pulse = 95 microseconds, no room for further optimisation
     total propagation time : 42 milliseconds (1st bit received -> DTR pulse)
  */
 
 #include "MarlinOctoHat_v2.h"
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ST7920    SPI tranfers ; retro engineered (crappy datasheet !)
-// data as seen on the logic analyser
-/*
+ /*
+        ST7920    pseudo SPI tranfers ; retro engineered (crappy datasheet !)
+        =====================================================================
+
+        data as seen on the logic analyzer, not taking the datasheet into account
+
+
                 typical frame, made of 2 pages of 32 lines :
                 --------------------------------------------
 
-                NSS active HIGH
+        NSS rising HIGH
 
                 F8
 
-                40 microseconds delay
+        40 microseconds delay, then page 0 :
 
                 30 / E0 / 80 / 00 / 80 / 00 / FA / payload : 32 bytes / F8 : TOTAL = 40 bytes
                 30 / E0 / 80 / 10 / 80 / 00 / FA / payload : 32 bytes / F8
@@ -56,15 +60,15 @@
                 30 / E0 / 90 / E0 / 80 / 00 / FA / payload : 32 bytes / F8
                 30 / E0 / 90 / F0 / 80 / 00 / FA / payload : 31 bytes /    10 (page 0) last line = 39 bytes
 
-                NSS inactive LOW
+        NSS falling LOW
 
-                560 microseconds
+        560 microseconds
                 
-                NSS active HIGH
+        NSS rising HIGH
 
                 F8
                 
-                40 us
+        40 microseconds delay, then page 1 :
 
                 30 / E0 / nn / mm / 80 / 00 / FA
 
@@ -101,10 +105,14 @@
                 30 / E0 / 90 / E0 / 80 / 80 / FA(7 bytes) / payload : 32 bytes / F8
                 30 / E0 / 90 / F0 / 80 / 80 / FA(7 bytes) / payload : 31 bytes /     00 (page 1) last line = 39 bytes
 
-                NSS inactive LOW
+        NSS falling LOW
 */
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // ST7920 SPI data description
+//
+// Data structures come from observation using a logic analyser while displaying a known raster image.
+// Graphic Mode only : Text Mode and Mixed Mode are not emulated.
 
 struct ST7920_lastLine_t // last line is one byte shorter than others
 {
@@ -224,14 +232,14 @@ static inline int32_t ST7920_getNumPage()
     // page 0 / page 1 hashcodes : fast page recognition
     
     // valid pages signatures :
-    static const uint8_t hash0 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x00 ^ 0xFA; // = 0xD2
-    static const uint8_t hash1 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x80 ^ 0xFA; // = 0x52
+    static const uint8_t hash0 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x00 ^ 0xFA; // = 0xD2 ; page 0 sig
+    static const uint8_t hash1 = 0xF8 ^ 0x30 ^ 0xE0 ^ 0x80 ^ 0x00 ^ 0x80 ^ 0x80 ^ 0xFA; // = 0x52 ; page 1 sig
 
     uint8_t hash = 0;
     uint8_t* p = (uint8_t*)SPI_2_Rx_Buffer;
     int i = 7;
 
-    do { hash ^= *p++; } while (i--);
+    do { hash ^= *p++; } while (i--); // -> compute current page hash / sig
 
     switch (hash)
     {
@@ -259,11 +267,16 @@ void ST7920_ISR_NSS_2()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // helper function : decodes one line of payload to buffer
+//
+// strips addresses, rearranges half bytes
 
 static inline void payloadToBitmap(uint8_t* dst, uint8_t* src)
 {
-    for (size_t i = 0; i < 32; i += 2) // skip address bytes
+    for (size_t i = 0; i < ST7920_PAYLOAD_SIZE; i += 2) // skip address bytes
     {
+        // works fine but GCC throws a "sequence point" warning
+        //*dst++ = *src++ | ((*src++ >> 4) & 0x0F); // extract pixels
+
         uint8_t a = *src++;
         uint8_t b = *src++;
         *dst++ = a | ((b >> 4) & 0x0F); // extract pixels
@@ -289,7 +302,7 @@ int32_t ST7920_dataToBmpOut()
 
     ST7920_page_t* pPage = (ST7920_page_t*)SPI_2_Rx_Buffer;
 
-    for (size_t i = 0; i < 32; i++)
+    for (size_t i = 0; i < ST7920_PAYLOAD_SIZE; i++)
     {
         ST7920_line_t* pLine = &pPage->lines[i];
         payloadToBitmap((uint8_t*)bmpPtr, pLine->payload);
