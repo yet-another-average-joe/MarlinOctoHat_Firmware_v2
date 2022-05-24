@@ -3,14 +3,20 @@
  Created:    2022/05/08
  Author:     Y@@J
  
+     SPI data :
+    1 SPI frame = 8 pages
+    1 page = 8lines / 128 pixels, vertical macropixels
+    1 page : 3 command bytes + 128 bytes(= 8 lines on the display)
+    1 command byte = 0x10 0x00 0XBn, n = page # (0...7)
+    total : 8 pages; 8 * 131 = 1048 bytes, CLK @ 1MHz
+
  2022-05-18 :   takes full advantage of DMA : a page is decoded and copied to Tx buffer (bmpOut)
                 while the next one is being received and processed ; decoding takes 360 microseconds,
                 and therefore DTR pulse starts 360 micros after the last bit is received
                 total propagation time = 12 milliseconds
  */
 
-#include "SSD1306.h"
-#include "SpiOut.h"
+#include "MarlinOctoHat_v2.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // OLED    data
@@ -38,7 +44,7 @@ void SSD1306_setup_SPI_2()
     SPI_2.beginTransactionSlave(spiSettings);
     spi_rx_reg(SPI_2.dev()); // Clear Rx register in case we already received SPI data
     SSD1306_setup_SPI_2_DMA();
-    attachInterrupt(digitalPinToInterrupt(PIN_NSS_2), SSD1306_ISR_NSS_2, RISING);
+    attachInterrupt(digitalPinToInterrupt(BOARD_SPI2_NSS_PIN), SSD1306_ISR_NSS_2, RISING);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,7 +74,7 @@ void SSD1306_setup_SPI_2_DMA()
 {
     dma_init(DMA1);
 
-    int ret_rx = dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &SSD1306_SPI_2_DMA_RxTubeCfg);
+    int ret_rx = dma_tube_cfg(DMA1, DMA_CH4, &SSD1306_SPI_2_DMA_RxTubeCfg);
 
     if (ret_rx != DMA_TUBE_CFG_SUCCESS)
     {
@@ -87,8 +93,8 @@ void SSD1306_setup_SPI_2_DMA()
     }
 
     spi_rx_reg(SPI_2.dev()); // Clear RX register in case we already received SPI data
-    dma_attach_interrupt(DMA1, SPI_2_RX_DMA_CH, SSD1306_SPI_2_DMA_IRQ); // Attach interrupt to catch end of DMA transfer
-    dma_enable(DMA1, SPI_2_RX_DMA_CH); // Rx : Enable DMA configurations
+    dma_attach_interrupt(DMA1, DMA_CH4, SSD1306_SPI_2_DMA_IRQ); // Attach interrupt to catch end of DMA transfer
+    dma_enable(DMA1, DMA_CH4); // Rx : Enable DMA configurations
     spi_rx_dma_enable(SPI_2.dev()); // SPI DMA requests for Rx 
 }
 
@@ -105,9 +111,9 @@ void SSD1306_ISR_NSS_2()
     if ((*p++ != 0x10) || (*p++ != 0x00) || ((*p++ & 0xF0) != 0xB0) || ((*p & 0x0F) > 7)) // not a page or not in sync
     {
         // reset
-        dma_disable(DMA1, SPI_2_RX_DMA_CH);
-        dma_tube_cfg(DMA1, SPI_2_RX_DMA_CH, &SSD1306_SPI_2_DMA_RxTubeCfg);
-        dma_enable(DMA1, SPI_2_RX_DMA_CH);
+        dma_disable(DMA1, DMA_CH4);
+        dma_tube_cfg(DMA1, DMA_CH4, &SSD1306_SPI_2_DMA_RxTubeCfg);
+        dma_enable(DMA1, DMA_CH4);
     }
 }
 
@@ -117,7 +123,7 @@ void SSD1306_ISR_NSS_2()
 
 inline void SSD1306_PageToBmpOut(uint32_t numPage)
 {
-    uint8_t* pOut = bmpOut + numPage * SSD1306_PAGE_SIZE;
+    volatile uint8_t* pOut = bmpOut + numPage * SSD1306_PAGE_SIZE;
 
     memset((void*)(pOut), 0, SSD1306_PAGE_SIZE); // reset to zero ; 1024 bytes
 
@@ -147,12 +153,14 @@ inline void SSD1306_PageToBmpOut(uint32_t numPage)
 
 void SSD1306_SPI_2_DMA_IRQ()
 {
-    if (dma_get_irq_cause(DMA1, SPI_2_RX_DMA_CH) == DMA_TRANSFER_COMPLETE)
+    if (dma_get_irq_cause(DMA1, DMA_CH4) == DMA_TRANSFER_COMPLETE)
     {
         uint32_t numPage = *(SPI_2_Rx_Buffer + 2) & 0x0F;
         SSD1306_PageToBmpOut(numPage); // page received : copy to bmpOut ; takes 270 microseconds
         dataReady = numPage == 7; // 8th page : data ready
     }
 
-    dma_clear_isr_bits(DMA1, SPI_2_RX_DMA_CH);
+    dma_clear_isr_bits(DMA1, DMA_CH4);
 }
+
+// END

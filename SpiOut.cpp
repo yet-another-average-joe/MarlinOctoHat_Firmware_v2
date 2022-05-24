@@ -4,24 +4,16 @@
  Author:     Y@@J
  */
 
-#include "SpiOut.h"
+#include "MarlinOctoHat_v2.h"
 
-#define DTR_PULSE_DURATION      1 // 1ms
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // receives the decoded bitmap
 // will be used as Tx buffer for SPI_1
-// allways keeps the last captured screen until a new one arrives
 
-uint8_t bmpOut[BMP_OUT_SIZE] = {0}; // BMP_OUT_SIZE = 1024 bytes
+volatile uint8_t bmpOut[BMP_OUT_SIZE] = {0}; // BMP_OUT_SIZE = 1024 bytes
 
 void setup_SPI_1_DMA();
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SPI_1 : MISO (Tx) only
-
-#define SPI_1               SPI
-#define SPI_1_TX_DMA_CH     DMA_CH3
+#define SPI_1   SPI // SPI 1, DMA1, DMA_CH3
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // function : setup SPI_1 ; slave, Rx only
@@ -59,7 +51,7 @@ void setup_SPI_1_DMA()
         DMA_REQ_SRC_SPI1_TX         // Hardware DMA request source
     };
 
-    int ret_tx = dma_tube_cfg(DMA1, SPI_1_TX_DMA_CH, &SPI_1_DMA_TxTubeCfg);
+    int ret_tx = dma_tube_cfg(DMA1, DMA_CH3, &SPI_1_DMA_TxTubeCfg);
 
     if (ret_tx != DMA_TUBE_CFG_SUCCESS)
     {
@@ -77,21 +69,8 @@ void setup_SPI_1_DMA()
         }
     }
 
-    dma_enable(DMA1, SPI_1_TX_DMA_CH); // Tx : Enable DMA configurations
+    dma_enable(DMA1, DMA_CH3); // Tx : Enable DMA configurations
     spi_tx_dma_enable(SPI_1.dev()); // SPI DMA requests for Tx 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// function : blink LED and send DTR pulse
-
-void pulseDTR()
-{
-    digitalWrite(LED_BUILTIN, LOW);
-    digitalWrite(PIN_RTS, HIGH);
-    delay(DTR_PULSE_DURATION);
-    digitalWrite(PIN_RTS, LOW);
-    digitalWrite(LED_BUILTIN, HIGH);
-}
-
-
-
+// END

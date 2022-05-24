@@ -4,24 +4,16 @@
  Author:     Y@@J
  */
 
-#include <Arduino.h>
-
-#include "PrintBmp.h"
 #include "MarlinOctoHat_v2.h"
-#include "SpiOut.h"
-
-//#ifdef __SERIAL_DEBUG
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // print ASCII art to the terminal
-
-//#ifdef __PRINT_HEX
 
 void printBmpAscii()
 {
     Serial.println();
 
-    uint8_t* p = bmpOut;
+    volatile uint8_t* p = bmpOut;
 
     for (int iLine = 0; iLine < BMP_OUT_HEIGHT; iLine++)
     {
@@ -47,18 +39,14 @@ void printBmpAscii()
         Serial.print('-');
 }
 
-//#endif //__PRINT_HEX
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // print formated hexadecimal to the terminal
-
-//#ifdef __PRINT_ASCII
 
 void printBmpHex()
 {
     Serial.println();
 
-    uint8_t* p = bmpOut;
+    volatile uint8_t* p = bmpOut;
 
     for (int iLine = 0; iLine < BMP_OUT_HEIGHT; iLine++)
     {
@@ -79,6 +67,4 @@ void printBmpHex()
         Serial.print('-');
 }
 
-//#endif // __PRINT_ASCII
-
-//#endif // __SERIAL_DEBUG
+// END
